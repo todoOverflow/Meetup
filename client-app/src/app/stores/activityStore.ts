@@ -45,7 +45,7 @@ class ActivityStroe {
       const activities = await agent.activities.list();
       runInAction("loading activities", () => {
         activities.forEach(activity => {
-          activity.date = activity.date.split(".")[0];
+          activity.date = activity.date.split("T")[0];
           this.activityRegistry.set(activity.id, activity);
         });
         this.loadingInitial = false;

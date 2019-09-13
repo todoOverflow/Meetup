@@ -13,7 +13,7 @@ const NavBar: React.FC = () => {
             alt="logo"
             style={{ marginRight: "10px" }}
           />
-          SNS APP
+          Meetup
         </Menu.Item>
         <Menu.Item name="Activities" as={NavLink} to="/activities" />
         <Menu.Item>
