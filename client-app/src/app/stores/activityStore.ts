@@ -2,10 +2,12 @@ import { observable, action, computed, configure, runInAction } from "mobx";
 import { createContext, SyntheticEvent } from "react";
 import { IActivity } from "../models/activity";
 import agent from "../api/agent";
+import { history } from "../..";
+import { toast } from "react-toastify";
 
 configure({ enforceActions: "always" });
 
-class ActivityStroe {
+class ActivityStore {
   @observable activityRegistry = new Map();
   //@observable activities: IActivity[] = [];
   @observable selectedActivity: IActivity | null = null;
@@ -22,13 +24,13 @@ class ActivityStroe {
 
   groupActivitiesByDate(activities: IActivity[]) {
     const sortedActivities = activities.sort((a, b) => {
-      return Date.parse(a.date) - Date.parse(b.date);
+      return a.date.getTime() - b.date.getTime();
     });
 
     return Object.entries(
       sortedActivities.reduce(
         (activities, activity) => {
-          const date = activity.date.split("T")[0];
+          const date = activity.date.toISOString().split("T")[0];
           activities[date] = activities[date]
             ? [...activities[date], activity]
             : [activity];
@@ -45,7 +47,7 @@ class ActivityStroe {
       const activities = await agent.activities.list();
       runInAction("loading activities", () => {
         activities.forEach(activity => {
-          activity.date = activity.date.split("T")[0];
+          activity.date = new Date(activity.date);
           this.activityRegistry.set(activity.id, activity);
         });
         this.loadingInitial = false;
@@ -62,14 +64,18 @@ class ActivityStroe {
     let activity = this.getActivityFromRegistry(id);
     if (activity) {
       this.selectedActivity = activity;
+      return activity;
     } else {
       this.loadingInitial = true;
       try {
         activity = await agent.activities.details(id);
         runInAction("getting activity ", () => {
+          activity.date = new Date(activity.date);
           this.selectedActivity = activity;
+          this.activityRegistry.set(activity.id, activity);
           this.loadingInitial = false;
         });
+        return activity;
       } catch (error) {
         console.log(error);
         runInAction("getting activity error", () => {
@@ -96,8 +102,10 @@ class ActivityStroe {
         this.submitting = false;
         //this.editMode = false;
       });
+      history.push(`/activities/${activity.id}`);
     } catch (error) {
-      console.log(error);
+      console.log(error.response);
+      toast.error("Problem submitting data");
       runInAction("create activity error", () => {
         this.submitting = false;
       });
@@ -114,8 +122,9 @@ class ActivityStroe {
         //this.editMode = false;
         this.submitting = false;
       });
+      history.push(`/activities/${activity.id}`);
     } catch (error) {
-      console.log(error);
+      console.log(error.response);
       runInAction("edit activity error", () => {
         this.submitting = false;
       });
@@ -145,4 +154,4 @@ class ActivityStroe {
   };
 }
 
-export default createContext(new ActivityStroe());
+export default createContext(new ActivityStore());
