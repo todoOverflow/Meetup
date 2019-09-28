@@ -2,12 +2,24 @@ import axios, { AxiosResponse } from "axios";
 import { IActivity } from "../models/activity";
 import { history } from "../../index";
 import { toast } from "react-toastify";
+import { IUser, IUserFormValues } from "../models/user";
 
 axios.defaults.baseURL = "http://localhost:5000/api";
 
+axios.interceptors.request.use(
+  config => {
+    const token = window.localStorage.getItem("jwt");
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
+
 axios.interceptors.response.use(undefined, error => {
-  if(error.message === 'Network Error' && !error.response){
-    toast.error('Network Error, make sure the API is running');
+  if (error.message === "Network Error" && !error.response) {
+    toast.error("Network Error, make sure the API is running");
   }
 
   const { status, config, data } = error.response;
@@ -21,11 +33,10 @@ axios.interceptors.response.use(undefined, error => {
   ) {
     history.push("/NotFound");
   }
-  if(status === 500){
-    toast.error('Server Error, check the terminal for more info!')
+  if (status === 500) {
+    toast.error("Server Error, check the terminal for more info!");
   }
-  throw error;
-
+  throw error.response;
 });
 
 const responseBody = (response: AxiosResponse) => response.data;
@@ -58,7 +69,7 @@ const requests = {
       .then(responseBody)
 };
 
-const activities = {
+const Activities = {
   list: (): Promise<IActivity[]> => requests.get("/activities"),
   details: (id: string) => requests.get(`/activities/${id}`),
   create: (activity: IActivity) => requests.post("/activities", activity),
@@ -67,4 +78,12 @@ const activities = {
   delete: (id: string) => requests.delete(`/activities/${id}`)
 };
 
-export default { activities };
+const Users = {
+  current: (): Promise<IUser> => requests.get("/user"),
+  login: (user: IUserFormValues): Promise<IUser> =>
+    requests.post("/user/login", user),
+  register: (user: IUserFormValues): Promise<IUser> =>
+    requests.post("/user/register", user)
+};
+
+export default { Activities, Users };
